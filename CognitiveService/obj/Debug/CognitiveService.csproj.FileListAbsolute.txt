@@ -1,0 +1,17 @@
+C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\obj\Debug\CognitiveService.csprojAssemblyReference.cache
+C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\obj\Debug\CognitiveService.Form1.resources
+C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\obj\Debug\CognitiveService.Properties.Resources.resources
+C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\obj\Debug\CognitiveService.csproj.GenerateResource.cache
+C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\obj\Debug\CognitiveService.csproj.CoreCompileInputs.cache
+C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\bin\Debug\CognitiveService.exe.config
+C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\bin\Debug\CognitiveService.exe
+C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\bin\Debug\CognitiveService.pdb
+C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\bin\Debug\Emgu.CV.xml
+C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\bin\Debug\Emgu.CV.UI.xml
+C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\bin\Debug\Emgu.Util.xml
+C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\obj\Debug\CognitiveService.csproj.CopyComplete
+C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\obj\Debug\CognitiveService.exe
+C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\obj\Debug\CognitiveService.pdb
+C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\bin\Debug\Newtonsoft.Json.dll
+C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\bin\Debug\Newtonsoft.Json.pdb
+C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\bin\Debug\Newtonsoft.Json.xml
