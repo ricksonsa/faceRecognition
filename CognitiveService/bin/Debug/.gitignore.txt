@@ -1,0 +1,5 @@
+Faces/*.*
+Faces\*.*
+Faces/*
+Faces\*
+.bmp
