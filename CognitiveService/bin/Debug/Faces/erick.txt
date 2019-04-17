@@ -1,1 +1,0 @@
-{"id":2,"nome":"erick","imagens":["erick111622.bmp","erick111632.bmp","erick111635.bmp","erick111640.bmp","erick111643.bmp","erick111645.bmp","erick111647.bmp","erick111651.bmp","erick125320.bmp","erick125424.bmp","erick125432.bmp","erick125442.bmp"]}
