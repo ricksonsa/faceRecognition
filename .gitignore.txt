@@ -1,0 +1,2 @@
+CognitiveService/bin/Debug/Faces/*
+CognitiveService\bin\Debug\Faces\*

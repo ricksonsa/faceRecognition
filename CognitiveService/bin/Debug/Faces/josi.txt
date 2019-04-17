@@ -1,1 +1,0 @@
-{"id":4,"nome":"josi","imagens":["josi233916.bmp","josi233956.bmp","josi234008.bmp","josi234125.bmp","josi234202.bmp","josi234309.bmp","josi234940.bmp"]}
