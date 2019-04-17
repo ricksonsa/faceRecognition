@@ -42,7 +42,8 @@ namespace CognitiveService
 
         private void SaveBtn_Click(object sender, EventArgs e)
         {
-            count = count + 1;
+            var time = DateTime.Now.ToString("HHmmssss");
+            Face face = new Face(count, nameBox.Text);
             grayFace = camera.QueryGrayFrame().Resize(320, 240, Emgu.CV.CvEnum.INTER.CV_INTER_CUBIC);
             MCvAvgComp[][] detectedFaces = grayFace.DetectHaarCascade(faceDetected, 1.2, 10, Emgu.CV.CvEnum.HAAR_DETECTION_TYPE.DO_CANNY_PRUNING, new Size(20, 20));
             foreach (var f in detectedFaces[0])
@@ -51,14 +52,41 @@ namespace CognitiveService
                 break;
             }
             trainedFace = result.Resize(100, 100, Emgu.CV.CvEnum.INTER.CV_INTER_CUBIC);
-           
+
+            if (labelList.Contains(nameBox.Text))
+            {
+                try
+                {
+                    DirectoryInfo di = new DirectoryInfo(facesPath);
+
+                    foreach (var file in di.GetFiles())
+                    {
+                        if (file.Name == face.nome + ".txt")
+                        {
+                            string json = File.ReadAllText(facesPath + file.Name);
+                            face = JsonConvert.DeserializeObject<Face>(json);
+                            face.imagens.Add(face.nome + time + ".bmp");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.ToString() + "\nNada registrado ainda.", "Oh oh!", MessageBoxButtons.OK);
+                }
+            }
+            else
+            {
+                count = count + 1;
+                face.imagens = new List<string>();
+                face.imagens.Add(face.nome + time + ".bmp");  
+            }
+
+            File.WriteAllText(facesPath + @"\" + face.nome + ".txt", JsonConvert.SerializeObject(face));
+            trainedFace.Save(facesPath + face.nome + time + ".bmp");
             trainingImages.Add(trainedFace);
             labelList.Add(nameBox.Text);
 
-            Face face = new Face(count, nameBox.Text);
-
-            trainedFace.Save(facesPath + face.nome + ".bmp");
-            File.WriteAllText(facesPath + @"\"+face.nome+".txt", JsonConvert.SerializeObject(face));
+            
 
             MessageBox.Show(nameBox.Text, "Adicionado");
         }
@@ -109,8 +137,11 @@ namespace CognitiveService
                         count = count + 1;
                         string json = File.ReadAllText(facesPath + file.Name);
                         Face face = JsonConvert.DeserializeObject<Face>(json);
-                        labelList.Add(face.nome);
-                        trainingImages.Add(new Image<Gray, byte>(facesPath + face.nome + ".bmp"));
+                        foreach (var imagem in face.imagens)
+                        {
+                            labelList.Add(face.nome);
+                            trainingImages.Add(new Image<Gray, byte>(facesPath + imagem));
+                        }  
                     }
                    
                 }
