@@ -57,17 +57,9 @@ namespace CognitiveService
             {
                 try
                 {
-                    DirectoryInfo di = new DirectoryInfo(facesPath);
-
-                    foreach (var file in di.GetFiles())
-                    {
-                        if (file.Name == face.nome + ".txt")
-                        {
-                            string json = File.ReadAllText(facesPath + file.Name);
-                            face = JsonConvert.DeserializeObject<Face>(json);
-                            face.imagens.Add(face.nome + time + ".bmp");
-                        }
-                    }
+                    string json = File.ReadAllText(facesPath + nameBox.Text + ".txt");
+                    face = JsonConvert.DeserializeObject<Face>(json);
+                    face.imagens.Add(face.nome + time + ".bmp");
                 }
                 catch (Exception ex)
                 {
@@ -78,7 +70,7 @@ namespace CognitiveService
             {
                 count = count + 1;
                 face.imagens = new List<string>();
-                face.imagens.Add(face.nome + time + ".bmp");  
+                face.imagens.Add(face.nome + time + ".bmp");
             }
 
             File.WriteAllText(facesPath + @"\" + face.nome + ".txt", JsonConvert.SerializeObject(face));
@@ -86,11 +78,11 @@ namespace CognitiveService
             trainingImages.Add(trainedFace);
             labelList.Add(nameBox.Text);
 
-            
+
 
             MessageBox.Show(nameBox.Text, "Adicionado");
         }
-        
+
         private void FrameProcedure(object sender, EventArgs e)
         {
             users.Add("");
@@ -99,15 +91,15 @@ namespace CognitiveService
             MCvAvgComp[][] facesDetectedNow = grayFace.DetectHaarCascade(faceDetected, 1.2, 10, Emgu.CV.CvEnum.HAAR_DETECTION_TYPE.DO_CANNY_PRUNING, new Size(20, 20));
             foreach (var f in facesDetectedNow[0])
             {
-                result = frame.Copy(f.rect).Convert<Gray , Byte>().Resize(100, 100, Emgu.CV.CvEnum.INTER.CV_INTER_CUBIC);
+                result = frame.Copy(f.rect).Convert<Gray, Byte>().Resize(100, 100, Emgu.CV.CvEnum.INTER.CV_INTER_CUBIC);
                 frame.Draw(f.rect, new Bgr(Color.Green), 3);
 
-                if(trainingImages.ToArray().Length != 0)
+                if (trainingImages.ToArray().Length != 0)
                 {
                     MCvTermCriteria termCreterias = new MCvTermCriteria(count, 0.001);
                     EigenObjectRecognizer recognizer = new EigenObjectRecognizer(trainingImages.ToArray(), labelList.ToArray(), 1500, ref termCreterias);
                     name = recognizer.Recognize(result);
-                    if(!detectedFaceslistBox.Items.Contains(name))
+                    if (!detectedFaceslistBox.Items.Contains(name))
                     {
                         detectedFaceslistBox.Items.Add(name);
                     }
@@ -116,7 +108,7 @@ namespace CognitiveService
                 // users[t - 1] = name;
                 users.Add("");
             }
-            
+
             imageBox.Image = frame;
             names = "";
             users.Clear();
@@ -141,14 +133,14 @@ namespace CognitiveService
                         {
                             labelList.Add(face.nome);
                             trainingImages.Add(new Image<Gray, byte>(facesPath + imagem));
-                        }  
+                        }
                     }
-                   
+
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.ToString()+"\nNada registrado ainda.", "Oh oh!", MessageBoxButtons.OK);
+                MessageBox.Show(ex.ToString() + "\nNada registrado ainda.", "Oh oh!", MessageBoxButtons.OK);
             }
 
 
