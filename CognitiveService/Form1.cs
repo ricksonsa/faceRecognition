@@ -18,7 +18,6 @@ namespace CognitiveService
     {
         //paths
         string facesPath = Application.StartupPath + @"\Faces\";
-        string facesPathTxt = Application.StartupPath + @"\Faces\Faces.txt";
 
         MCvFont font = new MCvFont(Emgu.CV.CvEnum.FONT.CV_FONT_HERSHEY_TRIPLEX, 0.6d, 0.6d);
         HaarCascade faceDetected;
@@ -32,10 +31,12 @@ namespace CognitiveService
         List<string> users = new List<string>();
         int count, numLabels, t = 0;
         string name, names = null;
+        EigenObjectRecognizer recognizer;
+        MCvTermCriteria termCreterias;
 
         private void BeginBtn_Click(object sender, EventArgs e)
         {
-            camera = new Capture();
+            camera = new Capture(0);
             camera.QueryFrame();
             Application.Idle += new EventHandler(FrameProcedure);
         }
@@ -77,9 +78,7 @@ namespace CognitiveService
             trainedFace.Save(facesPath + face.nome + time + ".bmp");
             trainingImages.Add(trainedFace);
             labelList.Add(nameBox.Text);
-
-
-
+            recognizer = new EigenObjectRecognizer(trainingImages.ToArray(), labelList.ToArray(), 1500, ref termCreterias);
             MessageBox.Show(nameBox.Text, "Adicionado");
         }
 
@@ -89,15 +88,15 @@ namespace CognitiveService
             frame = camera.QueryFrame().Resize(320, 240, Emgu.CV.CvEnum.INTER.CV_INTER_CUBIC);
             grayFace = frame.Convert<Gray, Byte>();
             MCvAvgComp[][] facesDetectedNow = grayFace.DetectHaarCascade(faceDetected, 1.2, 10, Emgu.CV.CvEnum.HAAR_DETECTION_TYPE.DO_CANNY_PRUNING, new Size(20, 20));
+            
             foreach (var f in facesDetectedNow[0])
             {
                 result = frame.Copy(f.rect).Convert<Gray, Byte>().Resize(100, 100, Emgu.CV.CvEnum.INTER.CV_INTER_CUBIC);
-                frame.Draw(f.rect, new Bgr(Color.Green), 3);
+                frame.Draw(f.rect, new Bgr(Color.Green), 2);
 
                 if (trainingImages.ToArray().Length != 0)
                 {
-                    MCvTermCriteria termCreterias = new MCvTermCriteria(count, 0.001);
-                    EigenObjectRecognizer recognizer = new EigenObjectRecognizer(trainingImages.ToArray(), labelList.ToArray(), 1500, ref termCreterias);
+                   
                     name = recognizer.Recognize(result);
                     if (!detectedFaceslistBox.Items.Contains(name))
                     {
@@ -117,7 +116,7 @@ namespace CognitiveService
         public Form1()
         {
             InitializeComponent();
-            faceDetected = new HaarCascade(@"C:\Users\ricks\source\repos\FaceRecognition\CognitiveService\haarcascade_frontalface_default.xml");
+            faceDetected = new HaarCascade(Application.StartupPath + @"\haarcascade_frontalface_default.xml");
             try
             {
                 DirectoryInfo di = new DirectoryInfo(facesPath);
@@ -126,7 +125,7 @@ namespace CognitiveService
                 {
                     if (file.Name.EndsWith(".txt"))
                     {
-                        count = count + 1;
+                        count += 1;
                         string json = File.ReadAllText(facesPath + file.Name);
                         Face face = JsonConvert.DeserializeObject<Face>(json);
                         foreach (var imagem in face.imagens)
@@ -142,6 +141,8 @@ namespace CognitiveService
             {
                 MessageBox.Show(ex.ToString() + "\nNada registrado ainda.", "Oh oh!", MessageBoxButtons.OK);
             }
+            termCreterias = new MCvTermCriteria(count, 0.001);
+            recognizer = new EigenObjectRecognizer(trainingImages.ToArray(), labelList.ToArray(), 1500, ref termCreterias);
 
 
         }
