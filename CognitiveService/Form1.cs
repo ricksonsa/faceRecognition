@@ -43,22 +43,11 @@ namespace CognitiveService
 
         Timer timer;
 
-        bool FaceSquare = true;
+        bool isTraining = false;
 
-        //MCvFont font = new MCvFont(Emgu.CV.CvEnum.FONT.CV_FONT_HERSHEY_TRIPLEX, 0.6d, 0.6d);
-
-        //Image<Bgr, byte> frame;
-
-        //Image<Gray, byte> result;
-        //Image<Gray, byte> trainedFace = null;
-        //Image<Gray, byte> grayFace = null;
-        //List<Image<Gray, byte>> trainingImages = new List<Image<Gray, byte>>();
-        //List<string> labelList = new List<string>();
-        //List<string> users = new List<string>();
-        //int count, numLabels, t = 0;
-        //string name, names = null;
-        //MCvTermCriteria termCreterias;
-
+        //Controls
+        public static ListBox rostoListBox;
+        
         public Form1()
         {
             InitializeComponent();
@@ -69,6 +58,11 @@ namespace CognitiveService
             Faces = new List<Image<Gray, byte>>();
             IDs = new List<int>();
             FacesList = new List<Face>();
+
+            rostoListBox = new ListBox();
+            rostoListBox.Size = detectedFaceslistBox.Size;
+            rostoListBox.Location = detectedFaceslistBox.Location;
+            panel1.Controls.Add(rostoListBox);
 
             try
             {
@@ -93,16 +87,23 @@ namespace CognitiveService
             {
                 MessageBox.Show(ex.ToString() + "\nNada registrado ainda.", "Oh oh!", MessageBoxButtons.OK);
             }
-            //termCreterias = new MCvTermCriteria(count, 0.001);
-            //recognizer = new EigenObjectRecognizer(trainingImages.ToArray(), labelList.ToArray(), 1500, ref termCreterias);
-
-
         }
 
         private void BeginBtn_Click(object sender, EventArgs e)
         {
             if (Camera == null)
-                Camera = new VideoCapture();
+            {
+                try
+                {
+                    //Camera = new VideoCapture();
+                    Camera = new VideoCapture(FacesPath + "videoFile.mp4");
+                }
+                catch (Exception)
+                {
+
+                    throw;
+                }
+            }
 
             Camera.ImageGrabbed += Camera_ImageGrabbed;
 
@@ -114,7 +115,6 @@ namespace CognitiveService
             {
                 MessageBox.Show(ex.Message, "Erro", MessageBoxButtons.OK);
             }
-
         }
 
         private void Camera_ImageGrabbed(object sender, EventArgs e)
@@ -135,21 +135,34 @@ namespace CognitiveService
                         try
                         {
                             var processedImage = imageFrame.Copy(face).Convert<Gray, Byte>().Resize(ProcessedImageWidth, ProcessedImageHeigth, Emgu.CV.CvEnum.Inter.Cubic);
+
+                            //Desenha quadrado em volta
                             imageFrame.Draw(face, new Bgr(Color.BurlyWood), 2);
-                            var result = Recognizer.Predict(processedImage);
-                            person = GetPersonById(Convert.ToInt32(result.Label));
-                            string text;
 
-                            if (person == null)
+                            if (!isTraining)
                             {
-                                text = "Nao conhecido";
-                            }
-                            else
-                            {
-                                text = person.nome;
-                            }
+                                var result = Recognizer.Predict(processedImage);
 
-                            imageFrame.Draw(text, new Point(face.Location.X -2 / 2, face.Location.Y - 2), Emgu.CV.CvEnum.FontFace.HersheyTriplex, 0.5, new Bgr(Color.Red));
+                                if (result.Distance < 4000)
+                                    person = GetPersonById(result.Label);
+
+                                string text;
+
+                                if (person == null)
+                                {
+                                    text = "Nao conhecido";
+                                }
+                                else
+                                {
+                                    text = person.nome;
+                                    //if(!rostoListBox.Items.Contains(person.nome))
+                                    //{
+                                    //    rostoListBox.Items.Add(person.nome);
+                                    //}
+                                }
+
+                                imageFrame.Draw(text + " - " + result.Distance, new Point(face.Location.X - 2, face.Location.Y - 2), Emgu.CV.CvEnum.FontFace.HersheyTriplex, 0.5, new Bgr(Color.Red));
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -170,44 +183,9 @@ namespace CognitiveService
                 timer.Tick += Timer_Tick;
                 timer.Start();
 
+                isTraining = true;
                 saveBtn.Enabled = !saveBtn.Enabled;
             }
-            //
-            //grayFace = camera.QueryGrayFrame().Resize(320, 240, Emgu.CV.CvEnum.INTER.CV_INTER_CUBIC);
-            //MCvAvgComp[][] detectedFaces = grayFace.DetectHaarCascade(faceDetected, 1.2, 10, Emgu.CV.CvEnum.HAAR_DETECTION_TYPE.DO_CANNY_PRUNING, new Size(20, 20));
-            //foreach (var f in detectedFaces[0])
-            //{
-            //    trainedFace = frame.Copy(f.rect).Convert<Gray, byte>();
-            //    break;
-            //}
-            //trainedFace = result.Resize(100, 100, Emgu.CV.CvEnum.INTER.CV_INTER_CUBIC);
-
-            //if (labelList.Contains(nameBox.Text))
-            //{
-            //    try
-            //    {
-            //        string json = File.ReadAllText(facesPath + nameBox.Text + ".txt");
-            //        face = JsonConvert.DeserializeObject<Face>(json);
-            //        face.imagens.Add(face.nome + time + ".bmp");
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        MessageBox.Show(ex.ToString() + "\nNada registrado ainda.", "Oh oh!", MessageBoxButtons.OK);
-            //    }
-            //}
-            //else
-            //{
-            //    count = count + 1;
-            //    face.imagens = new List<string>();
-            //    face.imagens.Add(face.nome + time + ".bmp");
-            //}
-
-            //File.WriteAllText(facesPath + @"\" + face.nome + ".txt", JsonConvert.SerializeObject(face));
-            //trainedFace.Save(facesPath + face.nome + time + ".bmp");
-            //trainingImages.Add(trainedFace);
-            //labelList.Add(nameBox.Text);
-            //recognizer = new EigenObjectRecognizer(trainingImages.ToArray(), labelList.ToArray(), 1500, ref termCreterias);
-            //MessageBox.Show(nameBox.Text, "Adicionado");
         }
 
         private void Timer_Tick(object sender, EventArgs e)
@@ -232,7 +210,7 @@ namespace CognitiveService
                         var processedImage = imageFrame.Copy(faces[0]).Resize(ProcessedImageWidth, ProcessedImageHeigth, Emgu.CV.CvEnum.Inter.Cubic);
                         processedImage.Save(FacesPath + face.nome + time + ".bmp");
 
-                        if (FacesList.Count() > 0)
+                        if (GetPersonByNome(face.nome) != null)
                         {
                             var person = GetPersonByNome(nameBox.Text);
                             if (person.imagens == null)
@@ -247,17 +225,10 @@ namespace CognitiveService
                             FacesList.Add(face);
                             File.WriteAllText(FacesPath + @"\" + face.nome + ".txt", JsonConvert.SerializeObject(face));
                         }
-                        
 
                         Faces.Add(processedImage);
                         IDs.Add(face.id);
                         ScanCounter++;
-
-                        //trainedFace.Save(facesPath + face.nome + time + ".bmp");
-                        //trainingImages.Add(trainedFace);
-                        //labelList.Add(nameBox.Text);
-                        //recognizer = new EigenObjectRecognizer(trainingImages.ToArray(), labelList.ToArray(), 1500, ref termCreterias);
-                        //MessageBox.Show(nameBox.Text, "Adicionado");
                     }
                 }
             }
@@ -274,9 +245,11 @@ namespace CognitiveService
                 TimerCount = 0;
                 saveBtn.Enabled = !saveBtn.Enabled;
                 MessageBox.Show("Terinamento realizado", "Treinado", MessageBoxButtons.OK);
+                isTraining = false;
+                Recognizer.Read(YMLPath);
 
             }
-           
+
         }
 
         private Mat GetMatFromSDImage(Image<Gray, byte> image)

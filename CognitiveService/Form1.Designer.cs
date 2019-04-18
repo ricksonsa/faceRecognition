@@ -64,6 +64,7 @@
             this.detectedFaceslistBox.Name = "detectedFaceslistBox";
             this.detectedFaceslistBox.Size = new System.Drawing.Size(300, 372);
             this.detectedFaceslistBox.TabIndex = 8;
+            this.detectedFaceslistBox.Visible = false;
             // 
             // detectedFacesLbl
             // 
