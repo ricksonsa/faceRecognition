@@ -12,13 +12,17 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Newtonsoft.Json;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
+using System.Threading;
+using Timer = System.Windows.Forms.Timer;
 
 namespace CognitiveService
 {
     public partial class Form1 : Form
     {
         //paths
-        string FacesPath = Application.StartupPath + @"\Faces\";
+        public static string FacesPath = Application.StartupPath + @"\Faces\";
 
         VideoCapture Camera;
         CascadeClassifier FaceDetection;
@@ -28,6 +32,7 @@ namespace CognitiveService
 
         List<Image<Gray, byte>> Faces;
         List<int> IDs;
+        public static List<ListViewItem> ListItems;
 
         List<Face> FacesList;
 
@@ -35,34 +40,54 @@ namespace CognitiveService
         int ProcessedImageHeigth = 150;
 
         int TimerCount = 0;
-        int TimeLimit = 30;
+        int TimeLimit = 15;
         int ScanCounter = 0;
         int Count = 0;
 
         string YMLPath = Application.StartupPath + @"\trainingData.yml";
-
+        private int selectedID;
         Timer timer;
 
         bool isTraining = false;
+        bool Empty = false;
 
         //Controls
         public static ListBox rostoListBox;
-        
+        private string selectedName;
+
         public Form1()
         {
             InitializeComponent();
+            Logger.Write("Executando...");
             Recognizer = new EigenFaceRecognizer(80, double.PositiveInfinity);
-            Recognizer.Read(YMLPath);
+            if (File.Exists(YMLPath))
+            {
+                Logger.Write("Encontrado arquivo de treinamento em " + YMLPath + " iniciando leitura...");
+                Recognizer.Read(YMLPath);
+                Logger.Write("Leitura concluida.");
+            }
+            else
+            {
+                Logger.Write("Não foi encontrado arquivo de treinamento em " + YMLPath);
+                Empty = true;
+            }
+
+            if (!Directory.Exists(FacesPath))
+            {
+                Directory.CreateDirectory(FacesPath);
+            }
+
             FaceDetection = new CascadeClassifier(Application.StartupPath + @"\haarcascade_frontalface_default.xml");
             Frame = new Mat();
             Faces = new List<Image<Gray, byte>>();
             IDs = new List<int>();
             FacesList = new List<Face>();
+            ListItems = new List<ListViewItem>();
 
-            rostoListBox = new ListBox();
-            rostoListBox.Size = detectedFaceslistBox.Size;
-            rostoListBox.Location = detectedFaceslistBox.Location;
-            panel1.Controls.Add(rostoListBox);
+            //rostoListBox = new ListBox();
+            //rostoListBox.Size = detectedFaceslistBox.Size;
+            //rostoListBox.Location = detectedFaceslistBox.Location;
+            //panel1.Controls.Add(rostoListBox);
 
             try
             {
@@ -72,14 +97,14 @@ namespace CognitiveService
                 {
                     if (file.Name.EndsWith(".txt"))
                     {
+                        Count += 1;
+
                         string json = File.ReadAllText(FacesPath + file.Name);
                         Face face = JsonConvert.DeserializeObject<Face>(json);
                         FacesList.Add(face);
-                        foreach (var imagem in face.imagens)
-                        {
-                            IDs.Add(face.id);
-                            Faces.Add(new Image<Gray, byte>(FacesPath + imagem));
-                        }
+                        Logger.Write("Identificação facial de " + face.nome + " encontrado.");
+                        Logger.Write("Count = " + Count);
+                        Logger.Write("FacesList Size = " + FacesList.Count);
                     }
                 }
             }
@@ -91,21 +116,20 @@ namespace CognitiveService
 
         private void BeginBtn_Click(object sender, EventArgs e)
         {
+            Thread cameraThread = new Thread(t => StartCamera());
+            cameraThread.Start();
+        }
+
+        private void StartCamera()
+        {
             if (Camera == null)
             {
-                try
-                {
-                    //Camera = new VideoCapture();
-                    Camera = new VideoCapture(FacesPath + "videoFile.mp4");
-                }
-                catch (Exception)
-                {
-
-                    throw;
-                }
+                Camera = new VideoCapture();
+                //Camera = new VideoCapture(FacesPath + "videoFile.mp4");
             }
 
             Camera.ImageGrabbed += Camera_ImageGrabbed;
+            Camera.FlipHorizontal = true;
 
             try
             {
@@ -120,6 +144,7 @@ namespace CognitiveService
         private void Camera_ImageGrabbed(object sender, EventArgs e)
         {
             Camera.Retrieve(Frame);
+            //var imageFrame = Frame.ToImage<Bgr, byte>().Flip(Emgu.CV.CvEnum.FlipType.Horizontal);
             var imageFrame = Frame.ToImage<Bgr, byte>();
 
             if (imageFrame != null)
@@ -134,34 +159,39 @@ namespace CognitiveService
                     {
                         try
                         {
+                            var unprocessedImage = imageFrame.Copy(face).Resize(ProcessedImageWidth, ProcessedImageHeigth, Emgu.CV.CvEnum.Inter.Cubic);
                             var processedImage = imageFrame.Copy(face).Convert<Gray, Byte>().Resize(ProcessedImageWidth, ProcessedImageHeigth, Emgu.CV.CvEnum.Inter.Cubic);
 
                             //Desenha quadrado em volta
                             imageFrame.Draw(face, new Bgr(Color.BurlyWood), 2);
 
-                            if (!isTraining)
+                            if (!isTraining && !Empty)
                             {
+                                string text = "Nao conhecido";
                                 var result = Recognizer.Predict(processedImage);
 
-                                if (result.Distance < 4000)
+                                if (result.Distance < 3000)
+                                {
                                     person = GetPersonById(result.Label);
 
-                                string text;
+                                    if (person != null)
+                                    {
+                                        text = person.nome;
+                                    }
 
-                                if (person == null)
-                                {
-                                    text = "Nao conhecido";
-                                }
-                                else
-                                {
-                                    text = person.nome;
-                                    //if(!rostoListBox.Items.Contains(person.nome))
+                                    //if (ListItems.Find(c => c.ImageKey == result.Label.ToString()) == null)
                                     //{
-                                    //    rostoListBox.Items.Add(person.nome);
+                                    //    imageList1.Images.Add(result.Label.ToString(), unprocessedImage.ToBitmap());
+                                    //    var item = new ListViewItem
+                                    //    {
+                                    //        Text = person.nome,
+                                    //        ImageKey = result.Label.ToString()
+                                    //    };
+
+                                    //    ListItems.Add(item);
                                     //}
                                 }
-
-                                imageFrame.Draw(text + " - " + result.Distance, new Point(face.Location.X - 2, face.Location.Y - 2), Emgu.CV.CvEnum.FontFace.HersheyTriplex, 0.5, new Bgr(Color.Red));
+                                imageFrame.Draw(result.Label + " - " + text + " - " + Math.Round(result.Distance, 2), new Point(face.Location.X - 2, face.Location.Y - 2), Emgu.CV.CvEnum.FontFace.HersheyTriplex, 0.5, new Bgr(Color.Red));
                             }
                         }
                         catch (Exception ex)
@@ -178,6 +208,13 @@ namespace CognitiveService
         {
             if (!string.IsNullOrEmpty(nameBox.Text))
             {
+                var face = GetPersonByNome(nameBox.Text) ?? new Face(Count++, nameBox.Text);
+                selectedName = nameBox.Text;
+                selectedID = face.id;
+
+                if (!FacesList.Contains(face))
+                    FacesList.Add(face);
+
                 timer = new Timer();
                 timer.Interval = 500;
                 timer.Tick += Timer_Tick;
@@ -190,9 +227,7 @@ namespace CognitiveService
 
         private void Timer_Tick(object sender, EventArgs e)
         {
-            Count += 1;
             var time = DateTime.Now.ToString("HHmmssss");
-            Face face = new Face(Count, nameBox.Text);
 
             Camera.Retrieve(Frame);
             var imageFrame = Frame.ToImage<Gray, byte>();
@@ -207,27 +242,13 @@ namespace CognitiveService
 
                     if (faces.Count() > 0)
                     {
+                        var imageFile = FacesPath + selectedName + time;
                         var processedImage = imageFrame.Copy(faces[0]).Resize(ProcessedImageWidth, ProcessedImageHeigth, Emgu.CV.CvEnum.Inter.Cubic);
-                        processedImage.Save(FacesPath + face.nome + time + ".bmp");
-
-                        if (GetPersonByNome(face.nome) != null)
-                        {
-                            var person = GetPersonByNome(nameBox.Text);
-                            if (person.imagens == null)
-                                person.imagens = new List<string>();
-                            person.imagens.Add(face.nome + time + ".bmp");
-                            File.WriteAllText(FacesPath + @"\" + person.nome + ".txt", JsonConvert.SerializeObject(person));
-                        }
-                        else
-                        {
-                            face.imagens = new List<string>();
-                            face.imagens.Add(face.nome + time + ".bmp");
-                            FacesList.Add(face);
-                            File.WriteAllText(FacesPath + @"\" + face.nome + ".txt", JsonConvert.SerializeObject(face));
-                        }
-
+                        processedImage.Save(imageFile + ".bmp");
                         Faces.Add(processedImage);
-                        IDs.Add(face.id);
+                        IDs.Add(selectedID);
+                        var bmp = processedImage.ToBitmap();
+                        Enrichment(bmp, imageFile, selectedID);
                         ScanCounter++;
                     }
                 }
@@ -235,102 +256,133 @@ namespace CognitiveService
             else
             {
                 timer.Stop();
+                Camera.Pause();
                 List<Mat> mats = new List<Mat>();
                 foreach (var item in Faces)
                 {
                     mats.Add(item.Mat);
                 }
+                Logger.Write("Treinando com dados recolhidos...");
                 Recognizer.Train(mats.ToArray(), IDs.ToArray());
                 Recognizer.Write(YMLPath);
+                Logger.Write("Escrevendo em arquivo YML");
+                Empty = false;
                 TimerCount = 0;
                 saveBtn.Enabled = !saveBtn.Enabled;
                 MessageBox.Show("Terinamento realizado", "Treinado", MessageBoxButtons.OK);
                 isTraining = false;
                 Recognizer.Read(YMLPath);
-
+                Logger.Write("Lendo arquivo YML");
+                Camera.Start();
             }
-
         }
 
-        private Mat GetMatFromSDImage(Image<Gray, byte> image)
+        private void Enrichment(Bitmap bmp, string path, int label)
         {
-            int stride = 0;
-            Bitmap bmp = new Bitmap(image.ToBitmap());
+            //var processedImage = new Image<Gray, Byte>(bmp);
 
-            System.Drawing.Rectangle rect = new System.Drawing.Rectangle(0, 0, bmp.Width, bmp.Height);
-            System.Drawing.Imaging.BitmapData bmpData = bmp.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadWrite, bmp.PixelFormat);
+            //var rotateRight = RotateImage(bmp, 10);
+            //rotateRight.Save(path + "_rotated_right.bmp");
+            //Faces.Add(new Image<Gray, Byte>(rotateRight));
+            //IDs.Add(label);
 
-            System.Drawing.Imaging.PixelFormat pf = bmp.PixelFormat;
-            if (pf == System.Drawing.Imaging.PixelFormat.Format32bppArgb)
-            {
-                stride = bmp.Width * 4;
-            }
-            else
-            {
-                stride = bmp.Width * 3;
-            }
+            //var rotateLeft = RotateImage(bmp, -10);
+            //IDs.Add(label);
+            //Faces.Add(new Image<Gray, Byte>(rotateLeft));
+            //rotateLeft.Save(path + "_rotated_left.bmp");
 
-            Image<Bgra, byte> cvImage = new Image<Bgra, byte>(bmp.Width, bmp.Height, stride, (IntPtr)bmpData.Scan0);
+            //var flipped = processedImage.Flip(Emgu.CV.CvEnum.FlipType.Horizontal);
+            //IDs.Add(label);
+            //Faces.Add(flipped);
+            //flipped.Save(path + "_flipped.bmp");
 
-            bmp.UnlockBits(bmpData);
+            //var flippedRotatedLeft = RotateImage(flipped.ToBitmap(), -10);
+            //IDs.Add(label);
+            //Faces.Add(new Image<Gray, Byte>(flippedRotatedLeft));
+            //flippedRotatedLeft.Save(path + "_flipped_rotated_left.bmp");
 
-            return cvImage.Mat;
+            //var flippedRotatedRight = RotateImage(flipped.ToBitmap(), 10);
+            //IDs.Add(label);
+            //Faces.Add(new Image<Gray, Byte>(flippedRotatedRight));
+            //flippedRotatedRight.Save(path + "_flipped_rotated_right.bmp");
+
+            //Contrast
+
+            //Light Contrast
+
+            var contrast = ImageUtils.ImageUtil.Contrast(bmp, -20);
+            contrast.Save(path + "_light_contrast.bmp");
+            Faces.Add(new Image<Gray, Byte>(contrast));
+            IDs.Add(label);
+
+            //var rotateRightContrast = RotateImage(contrast, 10);
+            //rotateRightContrast.Save(path + "_rotated_right_contrast.bmp");
+            //Faces.Add(new Image<Gray, Byte>(rotateRightContrast));
+            //IDs.Add(label);
+
+            //var rotateLeftContrast = RotateImage(contrast, -10);
+            //IDs.Add(label);
+            //Faces.Add(new Image<Gray, Byte>(rotateLeftContrast));
+            //rotateLeftContrast.Save(path + "_rotated_left_contrast.bmp");
+
+            //var flippedLightContrast = new Image<Gray, Byte>(contrast).Flip(Emgu.CV.CvEnum.FlipType.Horizontal);
+            //IDs.Add(label);
+            //Faces.Add(flippedLightContrast);
+            //flippedLightContrast.Save(path + "_flipped_light_contrast.bmp");
+
+            //var flippedLightContrastRotatedRight = RotateImage(flippedLightContrast.ToBitmap(), 10);
+            //IDs.Add(label);
+            //Faces.Add(new Image<Gray, Byte>(flippedLightContrastRotatedRight));
+            //flippedLightContrastRotatedRight.Save(path + "_flipped_light_contrast_rotated_right.bmp");
+
+            //var flippedLightContrastRotatedLeft = RotateImage(flippedLightContrast.ToBitmap(), -10);
+            //IDs.Add(label);
+            //Faces.Add(new Image<Gray, Byte>(flippedLightContrastRotatedLeft));
+            //flippedLightContrastRotatedLeft.Save(path + "_flipped_light_contrast_rotated_left.bmp");
+
+            // Dark Contrast
+
+            var darkcontrast = ImageUtils.ImageUtil.Contrast(bmp, 25);
+            darkcontrast.Save(path + "_dark_contrast.bmp");
+            Faces.Add(new Image<Gray, Byte>(darkcontrast));
+            IDs.Add(label);
+
+            //var rotateRightDarkContrast = RotateImage(darkcontrast, 10);
+            //rotateRightDarkContrast.Save(path + "_rotated_right_dark_contrast.bmp");
+            //Faces.Add(new Image<Gray, Byte>(rotateRightDarkContrast));
+            //IDs.Add(label);
+
+            //var rotateLeftDarkContrast = RotateImage(darkcontrast, -10);
+            //IDs.Add(label);
+            //Faces.Add(new Image<Gray, Byte>(rotateLeftDarkContrast));
+            //rotateLeftDarkContrast.Save(path + "_rotated_left_dark_contrast.bmp");
+
+            //var flippedDarkContrast = new Image<Gray, Byte>(darkcontrast).Flip(Emgu.CV.CvEnum.FlipType.Horizontal);
+            //IDs.Add(label);
+            //Faces.Add(flippedDarkContrast);
+            //flippedDarkContrast.Save(path + "_flipped_dark_contrast.bmp");
+
+            //var flippedDarkContrastRotatedRight = RotateImage(flippedDarkContrast.ToBitmap(), 10);
+            //IDs.Add(label);
+            //Faces.Add(new Image<Gray, Byte>(flippedDarkContrastRotatedRight));
+            //flippedDarkContrastRotatedRight.Save(path + "_flipped_dark_contrast_rotated_right.bmp");
+
+            //var flippedDarkContrastRotatedLeft = RotateImage(flippedDarkContrast.ToBitmap(), -10);
+            //IDs.Add(label);
+            //Faces.Add(new Image<Gray, Byte>(flippedDarkContrastRotatedLeft));
+            //flippedDarkContrastRotatedLeft.Save(path + "_flipped_dark_contrast_rotated_left.bmp");
+
         }
 
         Face GetPersonByNome(string nome)
         {
-            foreach (var person in FacesList)
-            {
-                if (person.nome == nome)
-                {
-                    return person;
-                }
-            }
-            return null;
+            return FacesList.Find(x => x.nome == nome);
         }
 
         Face GetPersonById(int id)
         {
-            foreach (var person in FacesList)
-            {
-                if (person.id == id)
-                {
-                    return person;
-                }
-            }
-            return null;
+            return FacesList.Find(x => x.id == id);
         }
-
-        //private void FrameProcedure(object sender, EventArgs e)
-        //{
-        //    users.Add("");
-        //    frame = camera.QueryFrame().Resize(320, 240, Emgu.CV.CvEnum.INTER.CV_INTER_CUBIC);
-        //    grayFace = frame.Convert<Gray, Byte>();
-        //    MCvAvgComp[][] facesDetectedNow = grayFace.DetectHaarCascade(faceDetected, 1.2, 10, Emgu.CV.CvEnum.HAAR_DETECTION_TYPE.DO_CANNY_PRUNING, new Size(20, 20));
-
-        //    foreach (var f in facesDetectedNow[0])
-        //    {
-        //        result = frame.Copy(f.rect).Convert<Gray, Byte>().Resize(100, 100, Emgu.CV.CvEnum.INTER.CV_INTER_CUBIC);
-        //        frame.Draw(f.rect, new Bgr(Color.Green), 2);
-
-        //        if (trainingImages.ToArray().Length != 0)
-        //        {
-
-        //            name = recognizer.Recognize(result);
-        //            if (!detectedFaceslistBox.Items.Contains(name))
-        //            {
-        //                detectedFaceslistBox.Items.Add(name);
-        //            }
-        //            frame.Draw(name, ref font, new Point(f.rect.X - 2, f.rect.Y - 2), new Bgr(Color.Red));
-        //        }
-        //        // users[t - 1] = name;
-        //        users.Add("");
-        //    }
-
-        //    imageBox.Image = frame;
-        //    names = "";
-        //    users.Clear();
-        //}
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -339,6 +391,28 @@ namespace CognitiveService
 
         private void ImageBox_Click(object sender, EventArgs e)
         {
+
+        }
+
+        private void Form1_Leave(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            Logger.Write("Encerrando aplicação...");
+        }
+
+        private void FacesReconizedTimer_Tick(object sender, EventArgs e)
+        {
+            foreach (var item in ListItems)
+            {
+                if (!listView1.Items.Contains(item))
+                {
+                    listView1.Items.Add(item);
+                }
+            }
 
         }
     }

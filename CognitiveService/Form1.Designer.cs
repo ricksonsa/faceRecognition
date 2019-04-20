@@ -30,7 +30,8 @@
         {
             this.components = new System.ComponentModel.Container();
             this.panel1 = new System.Windows.Forms.Panel();
-            this.detectedFaceslistBox = new System.Windows.Forms.ListBox();
+            this.listView1 = new System.Windows.Forms.ListView();
+            this.imageList1 = new System.Windows.Forms.ImageList(this.components);
             this.detectedFacesLbl = new System.Windows.Forms.Label();
             this.nameLbl = new System.Windows.Forms.Label();
             this.nameBox = new System.Windows.Forms.TextBox();
@@ -38,6 +39,7 @@
             this.beginBtn = new System.Windows.Forms.Button();
             this.panel2 = new System.Windows.Forms.Panel();
             this.imageBox = new Emgu.CV.UI.ImageBox();
+            this.facesReconizedTimer = new System.Windows.Forms.Timer(this.components);
             this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.imageBox)).BeginInit();
@@ -45,7 +47,7 @@
             // 
             // panel1
             // 
-            this.panel1.Controls.Add(this.detectedFaceslistBox);
+            this.panel1.Controls.Add(this.listView1);
             this.panel1.Controls.Add(this.detectedFacesLbl);
             this.panel1.Controls.Add(this.nameLbl);
             this.panel1.Controls.Add(this.nameBox);
@@ -56,15 +58,22 @@
             this.panel1.Size = new System.Drawing.Size(330, 635);
             this.panel1.TabIndex = 3;
             // 
-            // detectedFaceslistBox
+            // listView1
             // 
-            this.detectedFaceslistBox.FormattingEnabled = true;
-            this.detectedFaceslistBox.ItemHeight = 16;
-            this.detectedFaceslistBox.Location = new System.Drawing.Point(17, 160);
-            this.detectedFaceslistBox.Name = "detectedFaceslistBox";
-            this.detectedFaceslistBox.Size = new System.Drawing.Size(300, 372);
-            this.detectedFaceslistBox.TabIndex = 8;
-            this.detectedFaceslistBox.Visible = false;
+            this.listView1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.listView1.LargeImageList = this.imageList1;
+            this.listView1.Location = new System.Drawing.Point(17, 152);
+            this.listView1.MultiSelect = false;
+            this.listView1.Name = "listView1";
+            this.listView1.Size = new System.Drawing.Size(300, 380);
+            this.listView1.TabIndex = 8;
+            this.listView1.UseCompatibleStateImageBehavior = false;
+            // 
+            // imageList1
+            // 
+            this.imageList1.ColorDepth = System.Windows.Forms.ColorDepth.Depth8Bit;
+            this.imageList1.ImageSize = new System.Drawing.Size(16, 16);
+            this.imageList1.TransparentColor = System.Drawing.Color.Transparent;
             // 
             // detectedFacesLbl
             // 
@@ -137,6 +146,12 @@
             this.imageBox.TabStop = false;
             this.imageBox.Click += new System.EventHandler(this.ImageBox_Click);
             // 
+            // facesReconizedTimer
+            // 
+            this.facesReconizedTimer.Enabled = true;
+            this.facesReconizedTimer.Interval = 1000;
+            this.facesReconizedTimer.Tick += new System.EventHandler(this.FacesReconizedTimer_Tick);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -148,7 +163,9 @@
             this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "Form1";
             this.Text = "Face Recognition";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
+            this.Leave += new System.EventHandler(this.Form1_Leave);
             this.panel1.ResumeLayout(false);
             this.panel1.PerformLayout();
             this.panel2.ResumeLayout(false);
@@ -166,8 +183,10 @@
         private System.Windows.Forms.Button beginBtn;
         private System.Windows.Forms.Panel panel2;
         private Emgu.CV.UI.ImageBox imageBox;
-        private System.Windows.Forms.ListBox detectedFaceslistBox;
         private System.Windows.Forms.Label detectedFacesLbl;
+        private System.Windows.Forms.Timer facesReconizedTimer;
+        private System.Windows.Forms.ListView listView1;
+        private System.Windows.Forms.ImageList imageList1;
     }
 }
 
