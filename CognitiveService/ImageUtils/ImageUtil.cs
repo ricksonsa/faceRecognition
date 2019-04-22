@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
+
 namespace CognitiveService.ImageUtils
 {
     public static class ImageUtil

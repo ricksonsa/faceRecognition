@@ -1,0 +1,12 @@
+15:27:22 segunda-feira, 22 de abril de 2019
+Executando...
+---------------------------------------------------------------------------------------------
+15:27:23 segunda-feira, 22 de abril de 2019
+Encontrado arquivo de treinamento em C:\Users\ricks\source\repos\FaceRecognition\Training\bin\Debug\trainingData.yml iniciando leitura...
+---------------------------------------------------------------------------------------------
+15:27:23 segunda-feira, 22 de abril de 2019
+Leitura concluida.
+---------------------------------------------------------------------------------------------
+15:28:57 segunda-feira, 22 de abril de 2019
+Encerrando aplicação...
+---------------------------------------------------------------------------------------------

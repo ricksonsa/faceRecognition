@@ -174,6 +174,7 @@ namespace CognitiveService
                                     if (person != null)
                                     {
                                         text = person.nome;
+                                        unprocessedImage.ToBitmap().Save(FacesPath + @"\RecognizedPeople\" + person.nome + ".bmp");
                                     }
 
                                     //if (ListItems.Find(c => c.ImageKey == result.Label.ToString()) == null)
@@ -187,6 +188,7 @@ namespace CognitiveService
 
                                     //    ListItems.Add(item);
                                     //}
+
                                 }
                                 var count = i;
                                 count++;
@@ -200,55 +202,56 @@ namespace CognitiveService
                     }
                 }
 
-                if (profileFaces.Count() != 0)
-                {
-                    for (int i = 0; i < profileFaces.Count(); i++)
-                    {
-                        try
-                        {
-                            var unprocessedImage = imageFrame.Copy(profileFaces[i]).Resize(ProcessedImageWidth, ProcessedImageHeigth, Emgu.CV.CvEnum.Inter.Cubic);
-                            var processedImage = imageFrame.Copy(profileFaces[i]).Convert<Gray, Byte>().Resize(ProcessedImageWidth, ProcessedImageHeigth, Emgu.CV.CvEnum.Inter.Cubic);
+                //if (profileFaces.Count() != 0)
+                //{
+                //    for (int i = 0; i < profileFaces.Count(); i++)
+                //    {
+                //        try
+                //        {
+                //            var unprocessedImage = imageFrame.Copy(profileFaces[i]).Resize(ProcessedImageWidth, ProcessedImageHeigth, Emgu.CV.CvEnum.Inter.Cubic);
+                //            var processedImage = imageFrame.Copy(profileFaces[i]).Convert<Gray, Byte>().Resize(ProcessedImageWidth, ProcessedImageHeigth, Emgu.CV.CvEnum.Inter.Cubic);
 
-                            //Desenha quadrado em volta
-                            imageFrame.Draw(profileFaces[i], new Bgr(Color.BurlyWood), 2);
+                //            //Desenha quadrado em volta
+                //            imageFrame.Draw(profileFaces[i], new Bgr(Color.BurlyWood), 2);
 
-                            if (!isTraining && !Empty)
-                            {
-                                string text = "Nao conhecido";
-                                var result = Recognizer.Predict(processedImage);
+                //            if (!isTraining && !Empty)
+                //            {
+                //                string text = "Nao conhecido";
+                //                var result = Recognizer.Predict(processedImage);
 
-                                if (result.Distance < 3000)
-                                {
-                                    person = GetPersonById(result.Label);
+                //                if (result.Distance < 3000)
+                //                {
+                //                    person = GetPersonById(result.Label);
 
-                                    if (person != null)
-                                    {
-                                        text = person.nome;
-                                    }
+                //                    if (person != null)
+                //                    {
+                //                        text = person.nome;
+                //                        unprocessedImage.ToBitmap().Save(FacesPath + @"\RecognizedPeople\" + person.nome +".bmp");
+                //                    }
 
-                                    //if (ListItems.Find(c => c.ImageKey == result.Label.ToString()) == null)
-                                    //{
-                                    //    imageList1.Images.Add(result.Label.ToString(), unprocessedImage.ToBitmap());
-                                    //    var item = new ListViewItem
-                                    //    {
-                                    //        Text = person.nome,
-                                    //        ImageKey = result.Label.ToString()
-                                    //    };
+                //                    //if (ListItems.Find(c => c.ImageKey == result.Label.ToString()) == null)
+                //                    //{
+                //                    //    imageList1.Images.Add(result.Label.ToString(), unprocessedImage.ToBitmap());
+                //                    //    var item = new ListViewItem
+                //                    //    {
+                //                    //        Text = person.nome,
+                //                    //        ImageKey = result.Label.ToString()
+                //                    //    };
 
-                                    //    ListItems.Add(item);
-                                    //}
-                                }
-                                var count = i;
-                                count++;
-                                imageFrame.Draw(result.Label + " - " + text + " - " + Math.Round(result.Distance, 0) / 100 + " - pessoa " + count, new Point(profileFaces[i].Location.X - 2, profileFaces[i].Location.Y - 2), Emgu.CV.CvEnum.FontFace.HersheyTriplex, 0.5, new Bgr(Color.Red));
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show(ex.Message, "Erro");
-                        }
-                    }
-                }
+                //                    //    ListItems.Add(item);
+                //                    //}
+                //                }
+                //                var count = i;
+                //                count++;
+                //                imageFrame.Draw(result.Label + " - " + text + " - " + Math.Round(result.Distance, 0) / 100 + " - pessoa " + count, new Point(profileFaces[i].Location.X - 2, profileFaces[i].Location.Y - 2), Emgu.CV.CvEnum.FontFace.HersheyTriplex, 0.5, new Bgr(Color.Red));
+                //            }
+                //        }
+                //        catch (Exception ex)
+                //        {
+                //            MessageBox.Show(ex.Message, "Erro");
+                //        }
+                //    }
+                //}
                 imageBox.Image = imageFrame;
             }
         }
