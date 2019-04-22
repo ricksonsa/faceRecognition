@@ -3,17 +3,11 @@ using Emgu.CV.Face;
 using Emgu.CV.Structure;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Newtonsoft.Json;
-using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
 using System.Threading;
 using Timer = System.Windows.Forms.Timer;
 
@@ -26,6 +20,7 @@ namespace CognitiveService
 
         VideoCapture Camera;
         CascadeClassifier FaceDetection;
+        CascadeClassifier ProfileFaceDetection;
         EigenFaceRecognizer Recognizer;
 
         Mat Frame;
@@ -77,6 +72,7 @@ namespace CognitiveService
                 Directory.CreateDirectory(FacesPath);
             }
 
+            ProfileFaceDetection = new CascadeClassifier(Application.StartupPath + @"\haarcascade_profileface_default.xml");
             FaceDetection = new CascadeClassifier(Application.StartupPath + @"\haarcascade_frontalface_default.xml");
             Frame = new Mat();
             Faces = new List<Image<Gray, byte>>();
@@ -151,19 +147,20 @@ namespace CognitiveService
             {
                 var grayFrame = imageFrame.Convert<Gray, byte>();
                 var faces = FaceDetection.DetectMultiScale(grayFrame, 1.2, 10);
+                var profileFaces = ProfileFaceDetection.DetectMultiScale(grayFrame, 1.2, 10);
                 Face person = null;
 
                 if (faces.Count() != 0)
                 {
-                    foreach (var face in faces)
+                    for (int i=0;i<faces.Count(); i++)
                     {
                         try
                         {
-                            var unprocessedImage = imageFrame.Copy(face).Resize(ProcessedImageWidth, ProcessedImageHeigth, Emgu.CV.CvEnum.Inter.Cubic);
-                            var processedImage = imageFrame.Copy(face).Convert<Gray, Byte>().Resize(ProcessedImageWidth, ProcessedImageHeigth, Emgu.CV.CvEnum.Inter.Cubic);
+                            var unprocessedImage = imageFrame.Copy(faces[i]).Resize(ProcessedImageWidth, ProcessedImageHeigth, Emgu.CV.CvEnum.Inter.Cubic);
+                            var processedImage = imageFrame.Copy(faces[i]).Convert<Gray, Byte>().Resize(ProcessedImageWidth, ProcessedImageHeigth, Emgu.CV.CvEnum.Inter.Cubic);
 
                             //Desenha quadrado em volta
-                            imageFrame.Draw(face, new Bgr(Color.BurlyWood), 2);
+                            imageFrame.Draw(faces[i], new Bgr(Color.BurlyWood), 2);
 
                             if (!isTraining && !Empty)
                             {
@@ -191,7 +188,59 @@ namespace CognitiveService
                                     //    ListItems.Add(item);
                                     //}
                                 }
-                                imageFrame.Draw(result.Label + " - " + text + " - " + Math.Round(result.Distance, 2), new Point(face.Location.X - 2, face.Location.Y - 2), Emgu.CV.CvEnum.FontFace.HersheyTriplex, 0.5, new Bgr(Color.Red));
+                                var count = i;
+                                count++;
+                                imageFrame.Draw(result.Label + " - " + text + " - " + Math.Round(result.Distance, 0)/100 + " - pessoa " + count, new Point(faces[i].Location.X - 2, faces[i].Location.Y - 2), Emgu.CV.CvEnum.FontFace.HersheyTriplex, 0.5, new Bgr(Color.Red));
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show(ex.Message, "Erro");
+                        }
+                    }
+                }
+
+                if (profileFaces.Count() != 0)
+                {
+                    for (int i = 0; i < profileFaces.Count(); i++)
+                    {
+                        try
+                        {
+                            var unprocessedImage = imageFrame.Copy(profileFaces[i]).Resize(ProcessedImageWidth, ProcessedImageHeigth, Emgu.CV.CvEnum.Inter.Cubic);
+                            var processedImage = imageFrame.Copy(profileFaces[i]).Convert<Gray, Byte>().Resize(ProcessedImageWidth, ProcessedImageHeigth, Emgu.CV.CvEnum.Inter.Cubic);
+
+                            //Desenha quadrado em volta
+                            imageFrame.Draw(profileFaces[i], new Bgr(Color.BurlyWood), 2);
+
+                            if (!isTraining && !Empty)
+                            {
+                                string text = "Nao conhecido";
+                                var result = Recognizer.Predict(processedImage);
+
+                                if (result.Distance < 3000)
+                                {
+                                    person = GetPersonById(result.Label);
+
+                                    if (person != null)
+                                    {
+                                        text = person.nome;
+                                    }
+
+                                    //if (ListItems.Find(c => c.ImageKey == result.Label.ToString()) == null)
+                                    //{
+                                    //    imageList1.Images.Add(result.Label.ToString(), unprocessedImage.ToBitmap());
+                                    //    var item = new ListViewItem
+                                    //    {
+                                    //        Text = person.nome,
+                                    //        ImageKey = result.Label.ToString()
+                                    //    };
+
+                                    //    ListItems.Add(item);
+                                    //}
+                                }
+                                var count = i;
+                                count++;
+                                imageFrame.Draw(result.Label + " - " + text + " - " + Math.Round(result.Distance, 0) / 100 + " - pessoa " + count, new Point(profileFaces[i].Location.X - 2, profileFaces[i].Location.Y - 2), Emgu.CV.CvEnum.FontFace.HersheyTriplex, 0.5, new Bgr(Color.Red));
                             }
                         }
                         catch (Exception ex)
@@ -239,11 +288,24 @@ namespace CognitiveService
                 if (imageFrame != null)
                 {
                     var faces = FaceDetection.DetectMultiScale(imageFrame, 1.2, 10);
+                    var profileFaces = ProfileFaceDetection.DetectMultiScale(imageFrame, 1.2, 10);
 
                     if (faces.Count() > 0)
                     {
                         var imageFile = FacesPath + selectedName + time;
                         var processedImage = imageFrame.Copy(faces[0]).Resize(ProcessedImageWidth, ProcessedImageHeigth, Emgu.CV.CvEnum.Inter.Cubic);
+                        processedImage.Save(imageFile + ".bmp");
+                        Faces.Add(processedImage);
+                        IDs.Add(selectedID);
+                        var bmp = processedImage.ToBitmap();
+                        Enrichment(bmp, imageFile, selectedID);
+                        ScanCounter++;
+                    }
+
+                    if (profileFaces.Count() > 0)
+                    {
+                        var imageFile = FacesPath + selectedName + time;
+                        var processedImage = imageFrame.Copy(profileFaces[0]).Resize(ProcessedImageWidth, ProcessedImageHeigth, Emgu.CV.CvEnum.Inter.Cubic);
                         processedImage.Save(imageFile + ".bmp");
                         Faces.Add(processedImage);
                         IDs.Add(selectedID);
